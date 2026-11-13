@@ -1,0 +1,18 @@
+# Dependencies and local environment
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Generated caches and logs
+__pycache__/
+*.py[cod]
+*.log
+
+# Blender backup files
+*.blend[0-9]*
+
+# OS and editor files
+Thumbs.db
+.DS_Store
+.vscode/

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>过山车工坊</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js",
+        "three/addons/": "./vendor/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="fatal" hidden></div>
+
+  <!-- 开始画面 -->
+  <div id="start">
+    <div class="start-box">
+      <h1>过山车工坊</h1>
+      <p class="start-sub">设计一条过山车，然后坐上去跑一圈</p>
+      <div id="loading">
+        <div class="load-track"><i id="load-bar"></i></div>
+        <div id="load-text">正在加载贴图和模型</div>
+      </div>
+      <div class="start-actions" id="start-actions" hidden>
+        <button id="btn-begin" class="btn primary big">开始设计</button>
+        <button id="btn-continue" class="btn big" hidden>继续上次的设计</button>
+      </div>
+      <p class="start-note">建议使用新版的 Chrome 或 Edge，全屏游玩效果更好</p>
+    </div>
+  </div>
+
+  <!-- 设计界面 -->
+  <div id="edit-ui" hidden>
+    <header id="topbar">
+      <div class="brand">过山车工坊</div>
+      <div class="mode-switch" id="mode-switch">
+        <button data-mode="quick" class="on">快速模式</button>
+        <button data-mode="pro">专业模式</button>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="btn-undo" title="Ctrl + Z">撤销</button>
+        <button class="btn ghost" id="btn-redo" title="Ctrl + Y">重做</button>
+        <span class="sep"></span>
+        <button class="btn ghost" id="btn-save" title="Ctrl + S">保存</button>
+        <button class="btn ghost" id="btn-load">读取</button>
+        <button class="btn ghost" id="btn-export">导出文件</button>
+        <button class="btn ghost" id="btn-import">导入文件</button>
+        <span class="sep"></span>
+        <button class="btn ghost" id="btn-help">操作说明</button>
+        <button class="btn primary" id="btn-ride" title="空格键">开始运行</button>
+      </div>
+    </header>
+
+    <aside id="panel">
+      <nav class="tabs" id="tabs">
+        <button data-tab="track" class="on">轨道</button>
+        <button data-tab="train">列车</button>
+        <button data-tab="scene">场景</button>
+        <button data-tab="decor">装饰道具</button>
+      </nav>
+      <div class="tab-body" id="tab-track"></div>
+      <div class="tab-body" id="tab-train" hidden></div>
+      <div class="tab-body" id="tab-scene" hidden></div>
+      <div class="tab-body" id="tab-decor" hidden></div>
+    </aside>
+
+    <section id="stats"></section>
+    <div id="hint"></div>
+  </div>
+
+  <!-- 运行界面 -->
+  <div id="ride-ui" hidden>
+    <div class="ride-top">
+      <button class="btn" id="btn-exit" title="Esc">返回设计</button>
+      <div class="cam-switch" id="cam-switch"></div>
+      <div class="ride-tools">
+        <button class="btn rec" id="btn-rec" title="R"><i></i><span>录制</span></button>
+        <button class="btn" id="btn-shot" title="P">截图</button>
+        <button class="btn" id="btn-slow" title="T">慢动作</button>
+        <button class="btn" id="btn-pause" title="空格键">暂停</button>
+        <button class="btn" id="btn-mute" title="M">声音：开</button>
+      </div>
+    </div>
+    <div id="ride-msg" hidden></div>
+    <div id="hud">
+      <div class="hud-speed">
+        <div class="hud-num" id="hud-speed">0</div>
+        <div class="hud-unit">公里/小时</div>
+      </div>
+      <div class="hud-side">
+        <div class="hud-row"><span>高度</span><b id="hud-height">0 米</b></div>
+        <div class="hud-row"><span>垂直 G 力</span><b id="hud-gv">1.0</b></div>
+        <div class="gbar"><i id="hud-gbar"></i><em style="left:37.5%"></em></div>
+        <div class="hud-row"><span>横向 G 力</span><b id="hud-gl">0.0</b></div>
+        <div class="hud-row"><span>本圈用时</span><b id="hud-time">0.0 秒</b></div>
+      </div>
+    </div>
+    <div class="ride-keys">拖动鼠标转动视角　1-4 切换镜头　R 录制　P 截图　T 慢动作　H 隐藏界面　Esc 返回</div>
+  </div>
+
+  <div id="toasts"></div>
+
+  <div class="modal" id="modal-video" hidden>
+    <div class="modal-box">
+      <h3>录制完成</h3>
+      <video id="video-preview" controls></video>
+      <p id="video-info"></p>
+      <div class="modal-actions">
+        <a class="btn primary" id="video-save">保存视频</a>
+        <button class="btn" id="video-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-help" hidden>
+    <div class="modal-box wide">
+      <h3>操作说明</h3>
+      <div class="help-grid">
+        <div>
+          <h4>镜头</h4>
+          <p>左键拖动：旋转镜头<br>右键拖动：平移镜头<br>滚轮：拉近和拉远<br>F：把镜头对准选中的节点或道具</p>
+          <h4>快速模式</h4>
+          <p>在“轨道”里点一种类型，直接生成一整条轨道。<br>也可以点“开始手绘”，在地面上画一圈，松开鼠标后自动生成轨道。</p>
+          <h4>主题和场景</h4>
+          <p>“主题过山车”会连环境、列车和场景一起生成。<br>“场景段”可以给现有的轨道加上矿洞、霓虹隧道、城堡、星空大厅或恐龙丛林。<br>在专业模式里选中节点，可以单独指定它后面这一段的场景。<br>关掉“显示山体和建筑的外壳”可以看到室内的布置。</p>
+          <h4>装饰道具</h4>
+          <p>在“装饰道具”里选一样东西，再点地面放置。<br>点中已经放好的东西可以拖动，R 旋转，+ / - 缩放，Del 删除。</p>
+        </div>
+        <div>
+          <h4>专业模式</h4>
+          <p>点击节点选中，拖动三色箭头移动。<br>双击轨道：在那个位置加一个节点<br>I：在选中节点后面插入节点<br>Del：删除选中的节点<br>Q / E：倾斜角减少或增加 5 度<br>PageUp / PageDown：抬高或降低 1 米<br>Tab：选中下一个节点<br>小键盘 7 / 1 / 3 / 5：顶视、前视、侧视、透视</p>
+          <h4>运行</h4>
+          <p>空格：开始运行；运行时空格是暂停<br>1 到 4：切换镜头，C 依次切换<br>R：开始或停止录制，P：截图<br>T：慢动作，H：隐藏界面<br>回车：立刻发车，B：列车停在半路时推一把<br>M：开关声音，Esc：返回设计</p>
+        </div>
+      </div>
+      <div class="modal-actions"><button class="btn primary" id="help-close">知道了</button></div>
+    </div>
+  </div>
+
+  <input type="file" id="file-import" accept=".json,application/json" hidden>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
